@@ -7,28 +7,32 @@ st.set_page_config(page_title="多要素認証体験ゲーム", page_icon="🔐"
 # ---------------------------------------------------------
 METHODS = {
     "パスワード": {"factor": "知識要素", "security": 20, "convenience": 90, "icon": "🔑"},
-    "PINコード": {"factor": "知識要素", "security": 15, "convenience": 95, "icon": "🔢"},
+    "PIN": {"factor": "知識要素", "security": 15, "convenience": 95, "icon": "🔢"},
     "秘密の質問": {"factor": "知識要素", "security": 10, "convenience": 85, "icon": "❓"},
+    "スマホSMS認証": {"factor": "所持要素", "security": 25, "convenience": 75, "icon": "📱"},
     "ICカード": {"factor": "所持要素", "security": 30, "convenience": 70, "icon": "💳"},
-    "スマートフォン（SMS認証）": {"factor": "所持要素", "security": 25, "convenience": 75, "icon": "📱"},
-    "セキュリティキー": {"factor": "所持要素", "security": 35, "convenience": 60, "icon": "🔐"},
     "指紋認証": {"factor": "生体要素", "security": 35, "convenience": 80, "icon": "👆"},
     "顔認証": {"factor": "生体要素", "security": 30, "convenience": 85, "icon": "🙂"},
 }
 
-ATTACKS = {
-    "パスワード漏洩（フィッシング）": {"target": "知識要素", "desc": "フィッシングサイトなどによってパスワードや秘密の質問の答えが盗まれた。"},
-    "スマホ・IC カード盗難": {"target": "所持要素", "desc": "認証に使うスマートフォンやICカード、セキュリティキーが盗まれた。"},
-    "偽造指紋・顔認証突破": {"target": "生体要素", "desc": "型取りや高精細写真などにより指紋・顔情報が偽造された。"},
-}
-
-DIVERSITY_BONUS = {1: 0, 2: 25, 3: 45}
-
 FACTOR_DESC = {
-    "知識要素": "本人だけが知っている情報（例：パスワード、PIN）",
+    "知識要素": "本人だけが知っている情報（例：パスワード、PIN、秘密の質問）",
     "所持要素": "本人だけが持っている物（例：スマホ、ICカード）",
     "生体要素": "本人の身体的特徴（例：指紋、顔）",
 }
+
+# 攻撃手段：どの認証方法を狙うかをひもづける
+ATTACKS = {
+    "フィッシング：パスワード漏洩": {"target": "パスワード", "category": "フィッシング攻撃"},
+    "フィッシング：PIN漏洩": {"target": "PIN", "category": "フィッシング攻撃"},
+    "フィッシング：秘密の質問の回答漏洩": {"target": "秘密の質問", "category": "フィッシング攻撃"},
+    "盗難：スマートフォン盗難": {"target": "スマホSMS認証", "category": "盗難攻撃"},
+    "盗難：ICカード盗難": {"target": "ICカード", "category": "盗難攻撃"},
+    "偽造：指紋偽造": {"target": "指紋認証", "category": "偽造攻撃"},
+    "偽造：顔認証偽造": {"target": "顔認証", "category": "偽造攻撃"},
+}
+
+DIVERSITY_BONUS = {1: 0, 2: 25, 3: 45}
 
 # ---------------------------------------------------------
 # セッション状態初期化
@@ -39,8 +43,6 @@ if "security_score" not in st.session_state:
     st.session_state.security_score = 0
 if "convenience_score" not in st.session_state:
     st.session_state.convenience_score = 0
-if "attack_log" not in st.session_state:
-    st.session_state.attack_log = []
 
 
 # ---------------------------------------------------------
@@ -64,17 +66,17 @@ def calc_scores(selected):
 st.title("🔐 多要素認証体験ゲーム")
 st.caption("高校「情報Ⅰ」向け ― 多要素認証（知識・所持・生体）を体験的に学ぼう")
 
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["① 認証構成セットアップ", "② なりすまし攻撃シミュレーション", "③ 評価", "④ まとめ"]
+tab1, tab2, tab3 = st.tabs(
+    ["① 認証要素の選択", "② 攻撃シミュレーション", "③ 結果・評価"]
 )
 
 # ---------------------------------------------------------
-# ① 認証構成セットアップ画面
+# ① 認証要素の選択フェーズ
 # ---------------------------------------------------------
 with tab1:
-    st.header("① 認証構成セットアップ")
+    st.header("① 認証要素の選択")
     st.write(
-        "以下の認証方法から、実際に使いたいものを選んでください（複数選択可）。"
+        "以下の認証方法から、実際に使いたい組み合わせを選んでください（複数選択可）。"
         "それぞれの方法は「知識要素」「所持要素」「生体要素」のいずれかに分類されます。"
     )
 
@@ -122,57 +124,66 @@ with tab1:
         st.info("認証方法を1つ以上選択してください。")
 
 # ---------------------------------------------------------
-# ② なりすまし攻撃シミュレーション画面
+# ② 攻撃シミュレーションフェーズ
 # ---------------------------------------------------------
 with tab2:
-    st.header("② なりすまし攻撃シミュレーション")
+    st.header("② 攻撃シミュレーション")
 
     if not st.session_state.selected_methods:
-        st.warning("先に「① 認証構成セットアップ」で認証方法を選択してください。")
+        st.warning("先に「① 認証要素の選択」で認証方法を選択してください。")
     else:
-        used_factors = set(METHODS[m]["factor"] for m in st.session_state.selected_methods)
-        st.write("あなたの認証構成：", "、".join(st.session_state.selected_methods))
-        st.write(f"使用している要素：{'・'.join(used_factors)}")
+        student_methods = st.session_state.selected_methods
+        factors_used = set(METHODS[m]["factor"] for m in student_methods)
 
-        attack = st.radio(
-            "攻撃者が試みる、なりすまし手段を選んでください",
+        st.write("あなたの認証構成：", "、".join(student_methods))
+        st.write(f"使用している要素：{'・'.join(factors_used)}")
+
+        st.write("攻撃者の手段を選んでください（**最大2つまで**）：")
+        selected_attacks = st.multiselect(
+            "攻撃手段",
             options=list(ATTACKS.keys()),
+            max_selections=2,
+            format_func=lambda a: f'[{ATTACKS[a]["category"]}] {a.split("：")[1]}',
         )
-        st.caption(ATTACKS[attack]["desc"])
 
-        if st.button("攻撃を実行する", type="primary"):
-            target = ATTACKS[attack]["target"]
-            if target not in used_factors:
-                st.info(f"🛡️ あなたは「{target}」を利用していないため、この攻撃はそもそも成立しません。")
-                result = "対象外（無効）"
-            elif len(used_factors) == 1:
-                st.error(
-                    f"💥 突破されました！「{target}」だけに頼っていたため、"
-                    "攻撃者になりすまされてしまいました…"
-                )
-                result = "なりすまし成功（防御失敗）"
+        if st.button("攻撃を試す", type="primary"):
+            if not selected_attacks:
+                st.info("攻撃手段を1つ以上選択してください。")
             else:
-                remaining = used_factors - {target}
-                st.success(
-                    f"🛡️ 防御成功！「{target}」は突破されましたが、"
-                    f"残りの要素（{'・'.join(remaining)}）が本人確認をブロックしました！"
-                )
-                result = "防御成功"
-            st.session_state.attack_log.append((attack, result))
+                st.subheader("攻撃結果の内訳")
+                compromised_factors = set()
+                for atk in selected_attacks:
+                    target = ATTACKS[atk]["target"]
+                    label = atk.split("：")[1]
+                    if target in student_methods:
+                        st.write(f"- {label} → **{target}を使用しているため突破されました**")
+                        compromised_factors.add(METHODS[target]["factor"])
+                    else:
+                        st.write(f"- {label} → {target}は使用していないため影響なし")
 
-        if st.session_state.attack_log:
-            st.subheader("これまでの攻撃結果ログ")
-            for a, r in st.session_state.attack_log:
-                st.write(f"- {a} → **{r}**")
+                st.write("---")
+                if not compromised_factors:
+                    st.success("🛡️ 防御成功！ あなたが使っている要素はどれも突破されませんでした。")
+                elif compromised_factors == factors_used:
+                    st.error(
+                        "💥 攻撃成功（なりすまし成功）！ あなたが使っている要素がすべて突破されたため、"
+                        "攻撃者になりすまされてしまいました…"
+                    )
+                else:
+                    remaining = factors_used - compromised_factors
+                    st.success(
+                        f"🛡️ 防御成功！ 一部の要素（{'・'.join(compromised_factors)}）は突破されましたが、"
+                        f"残りの要素（{'・'.join(remaining)}）が本人確認をブロックしました！"
+                    )
 
 # ---------------------------------------------------------
-# ③ 評価画面
+# ③ 結果・評価フェーズ
 # ---------------------------------------------------------
 with tab3:
-    st.header("③ 評価")
+    st.header("③ 結果・評価")
 
     if not st.session_state.selected_methods:
-        st.warning("先に「① 認証構成セットアップ」で認証方法を選択してください。")
+        st.warning("先に「① 認証要素の選択」で認証方法を選択してください。")
     else:
         security = st.session_state.security_score
         convenience = st.session_state.convenience_score
@@ -207,30 +218,15 @@ with tab3:
                     "どちらを優先すべきかは、守りたい情報の重要度（例：銀行口座かSNSか）によって変わります。"
                 )
 
-# ---------------------------------------------------------
-# ④ まとめ
-# ---------------------------------------------------------
-with tab4:
-    st.header("④ まとめ")
-
-    if not st.session_state.selected_methods:
-        st.warning("先に①〜③のフェーズを完了させてください。")
-    else:
-        st.subheader("学習のポイント")
-        st.markdown(
-            """
+            st.write("---")
+            st.subheader("学習のまとめ")
+            st.markdown(
+                """
 - 多要素認証は **知識要素・所持要素・生体要素** の3種類に分類できる
 - 異なる種類の要素を組み合わせるほど、1つが突破されても他の要素が防御できるため、なりすましされにくくなる
 - 一方で、要素を増やすほど入力や準備の手間が増え、**利便性は下がる**傾向がある
 - セキュリティと利便性は多くの場合トレードオフの関係にあり、用途に応じたバランスが重要
-            """
-        )
-
-        st.write(
-            f"あなたの最終スコア → セキュリティ：**{st.session_state.security_score}点** ／ "
-            f"利便性：**{st.session_state.convenience_score}点**"
-        )
-
-        if st.button("学習完了！", type="primary"):
+                """
+            )
             st.success("お疲れさまでした！多要素認証の仕組みとバランス感覚を体験できましたね🎉")
             st.balloons()
