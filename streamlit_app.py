@@ -107,6 +107,68 @@ st.markdown(
         padding: 22px 20px 16px 20px;
         box-shadow: inset 0 0 0 3px #3a3a4a, inset 0 0 24px rgba(0,0,0,0.08);
     }
+
+    /* 攻撃結果アニメーション */
+    @keyframes fadeSlideUp {
+        0% { transform: translateY(24px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes shieldPulse {
+        0% { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+        60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+        100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    @keyframes shakeX {
+        0%, 100% { transform: translateX(0); }
+        15% { transform: translateX(-12px); }
+        30% { transform: translateX(10px); }
+        45% { transform: translateX(-8px); }
+        60% { transform: translateX(8px); }
+        75% { transform: translateX(-4px); }
+        90% { transform: translateX(4px); }
+    }
+    @keyframes flashBg {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.25); }
+    }
+    .result-banner {
+        border-radius: 18px;
+        padding: 26px 20px;
+        text-align: center;
+        margin-top: 16px;
+        animation: fadeSlideUp 0.5s ease-out;
+    }
+    .result-banner .result-icon {
+        display: block;
+        font-size: 60px;
+        line-height: 1.1;
+        margin-bottom: 8px;
+    }
+    .result-banner .result-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 6px;
+    }
+    .result-banner .result-detail {
+        font-size: 16px;
+    }
+    .result-success {
+        background: linear-gradient(135deg, #d4fc79, #96e6a1);
+        color: #0b4620;
+        box-shadow: 0 10px 24px rgba(60, 180, 90, 0.4);
+    }
+    .result-success .result-icon {
+        animation: shieldPulse 0.7s ease-out;
+    }
+    .result-fail {
+        background: linear-gradient(135deg, #ff9a9e, #ff5858);
+        color: #5a0000;
+        box-shadow: 0 10px 24px rgba(220, 60, 60, 0.45);
+        animation: fadeSlideUp 0.4s ease-out, shakeX 0.6s ease-in-out 0.4s, flashBg 0.8s ease-in-out 1s 2;
+    }
+    .result-fail .result-icon {
+        animation: shakeX 0.6s ease-in-out infinite;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -273,18 +335,44 @@ with tab2:
 
                 st.write("---")
                 if not compromised_factors:
-                    st.success("🛡️ 防御成功！ あなたが使っている要素はどれも突破されませんでした。")
+                    st.markdown(
+                        """
+                        <div class="result-banner result-success">
+                            <span class="result-icon">🛡️</span>
+                            <div class="result-title">防御成功！</div>
+                            <div class="result-detail">あなたが使っている要素はどれも突破されませんでした。</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    st.balloons()
                 elif compromised_factors == factors_used:
-                    st.error(
-                        "💥 攻撃成功（なりすまし成功）！ あなたが使っている要素がすべて突破されたため、"
-                        "攻撃者になりすまされてしまいました…"
+                    st.markdown(
+                        """
+                        <div class="result-banner result-fail">
+                            <span class="result-icon">💥</span>
+                            <div class="result-title">攻撃成功（なりすまし成功）！</div>
+                            <div class="result-detail">あなたが使っている要素がすべて突破されたため、攻撃者になりすまされてしまいました…</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
                     )
                 else:
                     remaining = factors_used - compromised_factors
-                    st.success(
-                        f"🛡️ 防御成功！ 一部の要素（{'・'.join(compromised_factors)}）は突破されましたが、"
-                        f"残りの要素（{'・'.join(remaining)}）が本人確認をブロックしました！"
+                    st.markdown(
+                        f"""
+                        <div class="result-banner result-success">
+                            <span class="result-icon">🛡️</span>
+                            <div class="result-title">防御成功！</div>
+                            <div class="result-detail">
+                                一部の要素（{'・'.join(compromised_factors)}）は突破されましたが、
+                                残りの要素（{'・'.join(remaining)}）が本人確認をブロックしました！
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
                     )
+                    st.balloons()
 
 # ---------------------------------------------------------
 # 結果・評価フェーズ
