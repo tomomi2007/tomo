@@ -66,6 +66,52 @@ def calc_scores(selected):
 st.title("🔐 突破を防げるか！多要素認証ゲーム")
 st.caption("高校「情報Ⅰ」向け ― 多要素認証（知識・所持・生体）を体験的に学び、攻撃をブロックしよう")
 
+# ---------------------------------------------------------
+# パソコン画面風デザイン用CSS
+# ---------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    .st-key-pc_frame_1, .st-key-pc_frame_2 {
+        background: linear-gradient(160deg, #2b2d42, #0f0f1a);
+        border-radius: 22px;
+        padding: 24px 24px 50px 24px;
+        box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+        position: relative;
+        margin-bottom: 60px;
+    }
+    .st-key-pc_frame_1::before, .st-key-pc_frame_2::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -26px;
+        transform: translateX(-50%);
+        width: 42px;
+        height: 20px;
+        background: #1c1c28;
+    }
+    .st-key-pc_frame_1::after, .st-key-pc_frame_2::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -40px;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 14px;
+        background: #12121c;
+        border-radius: 5px;
+    }
+    .st-key-pc_screen_1, .st-key-pc_screen_2 {
+        background: linear-gradient(180deg, #eaf6ff 0%, #d7ecff 100%);
+        border-radius: 12px;
+        padding: 22px 20px 16px 20px;
+        box-shadow: inset 0 0 0 3px #3a3a4a, inset 0 0 24px rgba(0,0,0,0.08);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 tab1, tab2, tab3 = st.tabs(
     ["① 認証要素の選択", "② 攻撃シミュレーション", "③ 結果・評価"]
 )
@@ -87,17 +133,20 @@ with tab1:
             st.caption(FACTOR_DESC[fname])
 
     st.write("")
-    for fname in FACTOR_DESC.keys():
-        st.markdown(f"**{fname}**")
-        fmethods = [m for m in METHODS if METHODS[m]["factor"] == fname]
-        mcols = st.columns(len(fmethods))
-        for col, m in zip(mcols, fmethods):
-            with col:
-                st.markdown(
-                    f'<div style="text-align:center; font-size:42px; line-height:1.2;">{METHODS[m]["icon"]}</div>',
-                    unsafe_allow_html=True,
-                )
-                st.checkbox(m, key=f"method_{m}")
+    with st.container(key="pc_frame_1"):
+        with st.container(key="pc_screen_1"):
+            st.markdown("💻 **画面の中のアイコンをチェックして認証方法を選ぼう**")
+            for fname in FACTOR_DESC.keys():
+                st.markdown(f"**{fname}**")
+                fmethods = [m for m in METHODS if METHODS[m]["factor"] == fname]
+                mcols = st.columns(len(fmethods))
+                for col, m in zip(mcols, fmethods):
+                    with col:
+                        st.markdown(
+                            f'<div style="text-align:center; font-size:42px; line-height:1.2;">{METHODS[m]["icon"]}</div>',
+                            unsafe_allow_html=True,
+                        )
+                        st.checkbox(m, key=f"method_{m}")
 
     selected = [m for m in METHODS if st.session_state.get(f"method_{m}")]
     st.session_state.selected_methods = selected
@@ -148,18 +197,21 @@ with tab2:
 
         st.write("攻撃者の手段を選んでください（**最大2つまで**）：")
 
-        categories = ["フィッシング攻撃", "盗難攻撃", "偽造攻撃"]
-        for cat in categories:
-            st.markdown(f"**{cat}**")
-            cat_attacks = [a for a in ATTACKS if ATTACKS[a]["category"] == cat]
-            cols = st.columns(len(cat_attacks))
-            for col, atk in zip(cols, cat_attacks):
-                with col:
-                    st.markdown(
-                        f'<div style="text-align:center; font-size:42px; line-height:1.2;">{ATTACKS[atk]["icon"]}</div>',
-                        unsafe_allow_html=True,
-                    )
-                    st.checkbox(atk.split("：")[1], key=f"atk_{atk}")
+        with st.container(key="pc_frame_2"):
+            with st.container(key="pc_screen_2"):
+                st.markdown("💻 **画面の中の攻撃アイコンをチェックしよう（最大2つ）**")
+                categories = ["フィッシング攻撃", "盗難攻撃", "偽造攻撃"]
+                for cat in categories:
+                    st.markdown(f"**{cat}**")
+                    cat_attacks = [a for a in ATTACKS if ATTACKS[a]["category"] == cat]
+                    cols = st.columns(len(cat_attacks))
+                    for col, atk in zip(cols, cat_attacks):
+                        with col:
+                            st.markdown(
+                                f'<div style="text-align:center; font-size:42px; line-height:1.2;">{ATTACKS[atk]["icon"]}</div>',
+                                unsafe_allow_html=True,
+                            )
+                            st.checkbox(atk.split("：")[1], key=f"atk_{atk}")
 
         selected_attacks = [a for a in ATTACKS if st.session_state.get(f"atk_{a}")]
 
