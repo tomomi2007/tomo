@@ -113,14 +113,14 @@ st.markdown(
 )
 
 tab1, tab2, tab3 = st.tabs(
-    ["① 認証要素の選択", "② 攻撃シミュレーション", "③ 結果・評価"]
+    ["認証要素の選択", "攻撃シミュレーション", "結果・評価"]
 )
 
 # ---------------------------------------------------------
-# ① 認証要素の選択フェーズ
+# 認証要素の選択フェーズ
 # ---------------------------------------------------------
 with tab1:
-    st.header("① 認証要素の選択")
+    st.header("認証要素の選択")
     st.write(
         "以下の認証方法から、実際に使いたい組み合わせにチェックを入れてください（複数選択可）。"
         "それぞれの方法は「知識要素」「所持要素」「生体要素」のいずれかに分類されます。"
@@ -181,13 +181,13 @@ with tab1:
         st.info("認証方法を1つ以上選択してください。")
 
 # ---------------------------------------------------------
-# ② 攻撃シミュレーションフェーズ
+# 攻撃シミュレーションフェーズ
 # ---------------------------------------------------------
 with tab2:
-    st.header("② 攻撃シミュレーション")
+    st.header("攻撃シミュレーション")
 
     if not st.session_state.selected_methods:
-        st.warning("先に「① 認証要素の選択」で認証方法を選択してください。")
+        st.warning("先に「認証要素の選択」で認証方法を選択してください。")
     else:
         student_methods = st.session_state.selected_methods
         factors_used = set(METHODS[m]["factor"] for m in student_methods)
@@ -218,7 +218,44 @@ with tab2:
         if len(selected_attacks) > 2:
             st.error("攻撃手段は最大2つまでです。チェックを1つ以上外してください。")
 
-        if st.button("攻撃を試す", type="primary", disabled=len(selected_attacks) > 2):
+        st.markdown(
+            """
+            <style>
+            .st-key-attack_button button {
+                background: linear-gradient(135deg, #ff512f, #dd2476);
+                color: white;
+                font-size: 22px;
+                font-weight: bold;
+                padding: 18px 10px;
+                border: none;
+                border-radius: 14px;
+                box-shadow: 0 8px 18px rgba(221, 36, 118, 0.45);
+                transition: transform 0.1s ease-in-out;
+            }
+            .st-key-attack_button button:hover {
+                transform: scale(1.03);
+            }
+            .st-key-attack_button button p {
+                font-size: 22px !important;
+                font-weight: bold !important;
+            }
+            </style>
+            <div style="text-align:center; font-size:64px; line-height:1.1; margin-top:10px;">
+                🦹‍♂️💥🛡️
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.container(key="attack_button"):
+            attack_clicked = st.button(
+                "⚔️ 攻撃する！",
+                type="primary",
+                disabled=len(selected_attacks) > 2,
+                use_container_width=True,
+            )
+
+        if attack_clicked:
             if not selected_attacks:
                 st.info("攻撃手段を1つ以上選択してください。")
             else:
@@ -250,13 +287,13 @@ with tab2:
                     )
 
 # ---------------------------------------------------------
-# ③ 結果・評価フェーズ
+# 結果・評価フェーズ
 # ---------------------------------------------------------
 with tab3:
-    st.header("③ 結果・評価")
+    st.header("結果・評価")
 
     if not st.session_state.selected_methods:
-        st.warning("先に「① 認証要素の選択」で認証方法を選択してください。")
+        st.warning("先に「認証要素の選択」で認証方法を選択してください。")
     else:
         security = st.session_state.security_score
         convenience = st.session_state.convenience_score
