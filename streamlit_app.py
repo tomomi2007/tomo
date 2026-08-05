@@ -76,7 +76,7 @@ tab1, tab2, tab3 = st.tabs(
 with tab1:
     st.header("① 認証要素の選択")
     st.write(
-        "以下の認証方法から、実際に使いたい組み合わせを選んでください（複数選択可）。"
+        "以下の認証方法から、実際に使いたい組み合わせにチェックを入れてください（複数選択可）。"
         "それぞれの方法は「知識要素」「所持要素」「生体要素」のいずれかに分類されます。"
     )
 
@@ -86,12 +86,20 @@ with tab1:
             st.markdown(f"**{fname}**")
             st.caption(FACTOR_DESC[fname])
 
-    selected = st.multiselect(
-        "使用する認証方法を選択してください",
-        options=list(METHODS.keys()),
-        default=st.session_state.selected_methods,
-        format_func=lambda m: f'{METHODS[m]["icon"]} {m}（{METHODS[m]["factor"]}）',
-    )
+    st.write("")
+    for fname in FACTOR_DESC.keys():
+        st.markdown(f"**{fname}**")
+        fmethods = [m for m in METHODS if METHODS[m]["factor"] == fname]
+        mcols = st.columns(len(fmethods))
+        for col, m in zip(mcols, fmethods):
+            with col:
+                st.markdown(
+                    f'<div style="text-align:center; font-size:42px; line-height:1.2;">{METHODS[m]["icon"]}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.checkbox(m, key=f"method_{m}")
+
+    selected = [m for m in METHODS if st.session_state.get(f"method_{m}")]
     st.session_state.selected_methods = selected
 
     if selected:
