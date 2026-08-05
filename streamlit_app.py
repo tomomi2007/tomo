@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="多要素認証体験ゲーム", page_icon="🔐", layout="wide")
+st.set_page_config(page_title="突破を防げるか！多要素認証ゲーム", page_icon="🔐", layout="wide")
 
 # ---------------------------------------------------------
 # データ定義
@@ -21,15 +21,15 @@ FACTOR_DESC = {
     "生体要素": "本人の身体的特徴（例：指紋、顔）",
 }
 
-# 攻撃手段：どの認証方法を狙うかをひもづける
+# 攻撃手段：どの認証方法を狙うかをひもづける（イラスト代わりの絵文字アイコン付き）
 ATTACKS = {
-    "フィッシング：パスワード漏洩": {"target": "パスワード", "category": "フィッシング攻撃"},
-    "フィッシング：PIN漏洩": {"target": "PIN", "category": "フィッシング攻撃"},
-    "フィッシング：秘密の質問の回答漏洩": {"target": "秘密の質問", "category": "フィッシング攻撃"},
-    "盗難：スマートフォン盗難": {"target": "スマホSMS認証", "category": "盗難攻撃"},
-    "盗難：ICカード盗難": {"target": "ICカード", "category": "盗難攻撃"},
-    "偽造：指紋偽造": {"target": "指紋認証", "category": "偽造攻撃"},
-    "偽造：顔認証偽造": {"target": "顔認証", "category": "偽造攻撃"},
+    "フィッシング：パスワード漏洩": {"target": "パスワード", "category": "フィッシング攻撃", "icon": "🎣🔑"},
+    "フィッシング：PIN漏洩": {"target": "PIN", "category": "フィッシング攻撃", "icon": "🎣🔢"},
+    "フィッシング：秘密の質問の回答漏洩": {"target": "秘密の質問", "category": "フィッシング攻撃", "icon": "🎣❓"},
+    "盗難：スマートフォン盗難": {"target": "スマホSMS認証", "category": "盗難攻撃", "icon": "🕵️📱"},
+    "盗難：ICカード盗難": {"target": "ICカード", "category": "盗難攻撃", "icon": "🕵️💳"},
+    "偽造：指紋偽造": {"target": "指紋認証", "category": "偽造攻撃", "icon": "🧪👆"},
+    "偽造：顔認証偽造": {"target": "顔認証", "category": "偽造攻撃", "icon": "🧪🙂"},
 }
 
 DIVERSITY_BONUS = {1: 0, 2: 25, 3: 45}
@@ -63,8 +63,8 @@ def calc_scores(selected):
 # ---------------------------------------------------------
 # タイトル
 # ---------------------------------------------------------
-st.title("🔐 多要素認証体験ゲーム")
-st.caption("高校「情報Ⅰ」向け ― 多要素認証（知識・所持・生体）を体験的に学ぼう")
+st.title("🔐 突破を防げるか！多要素認証ゲーム")
+st.caption("高校「情報Ⅰ」向け ― 多要素認証（知識・所持・生体）を体験的に学び、攻撃をブロックしよう")
 
 tab1, tab2, tab3 = st.tabs(
     ["① 認証要素の選択", "② 攻撃シミュレーション", "③ 結果・評価"]
@@ -139,14 +139,26 @@ with tab2:
         st.write(f"使用している要素：{'・'.join(factors_used)}")
 
         st.write("攻撃者の手段を選んでください（**最大2つまで**）：")
-        selected_attacks = st.multiselect(
-            "攻撃手段",
-            options=list(ATTACKS.keys()),
-            max_selections=2,
-            format_func=lambda a: f'[{ATTACKS[a]["category"]}] {a.split("：")[1]}',
-        )
 
-        if st.button("攻撃を試す", type="primary"):
+        categories = ["フィッシング攻撃", "盗難攻撃", "偽造攻撃"]
+        for cat in categories:
+            st.markdown(f"**{cat}**")
+            cat_attacks = [a for a in ATTACKS if ATTACKS[a]["category"] == cat]
+            cols = st.columns(len(cat_attacks))
+            for col, atk in zip(cols, cat_attacks):
+                with col:
+                    st.markdown(
+                        f'<div style="text-align:center; font-size:42px; line-height:1.2;">{ATTACKS[atk]["icon"]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.checkbox(atk.split("：")[1], key=f"atk_{atk}")
+
+        selected_attacks = [a for a in ATTACKS if st.session_state.get(f"atk_{a}")]
+
+        if len(selected_attacks) > 2:
+            st.error("攻撃手段は最大2つまでです。チェックを1つ以上外してください。")
+
+        if st.button("攻撃を試す", type="primary", disabled=len(selected_attacks) > 2):
             if not selected_attacks:
                 st.info("攻撃手段を1つ以上選択してください。")
             else:
@@ -155,11 +167,12 @@ with tab2:
                 for atk in selected_attacks:
                     target = ATTACKS[atk]["target"]
                     label = atk.split("：")[1]
+                    icon = ATTACKS[atk]["icon"]
                     if target in student_methods:
-                        st.write(f"- {label} → **{target}を使用しているため突破されました**")
+                        st.write(f"- {icon} {label} → **{target}を使用しているため突破されました**")
                         compromised_factors.add(METHODS[target]["factor"])
                     else:
-                        st.write(f"- {label} → {target}は使用していないため影響なし")
+                        st.write(f"- {icon} {label} → {target}は使用していないため影響なし")
 
                 st.write("---")
                 if not compromised_factors:
